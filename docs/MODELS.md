@@ -14,9 +14,9 @@ Serialized to JSON (`save_profile.json`) via `System.Text.Json`. Powers the Titl
 * *(Note: `Atk` and `Hp` are **not** stored in the save file. They are calculated dynamically from `Level` using Mash's FGO stat scaling—from ~1,261 ATK / 1,854 HP at Lv. 1 up to ~8,730 ATK / 12,877 HP at Lv. 80—so save files never desync from balance tweaks.)*
 
 ### Combat Kit
-* `int Skill1Level` — *Honorable Wall of Snowflakes* (Improves Guard damage mitigation).
-* `int Skill2Level` — *Obscurant Wall of Chalk* (Widens the active Parry timing window).
-* `int Skill3Level` — *Shield of Rousing Resolution* (Increases NP gauge gain rate).
+* `int Skill1Level` — *Honorable Wall of Snowflakes* (Passive: Improves Guard damage mitigation).
+* `int Skill2Level` — *Obscurant Wall of Chalk* (Passive: Widens the active Parry timing window).
+* `int Skill3Level` — *Shield of Rousing Resolution* (Passive: Increases NP gauge gain rate).
 * `int NpLevel` — Starts at `1`, caps at `5`. Locked to story progress (automatically upgrades at key Singularities, evolving from *Lord Chaldeas* to *Lord Camelot*).
 * *(Note: Craft Essences are intentionally excluded to keep menus and balance clean.)*
 
@@ -37,13 +37,28 @@ Serialized to JSON (`save_profile.json`) via `System.Text.Json`. Powers the Titl
 
 ---
 
-## 2. `MashState.cs` (Active Run State — In Progress)
+## 2. `MashState.cs` (Active Run State — Finalized)
 Lives in memory only during an active stage run and resets when the stage ends.
 
-* **Vitals & Gauge:** `int CurrentHp`, `int MaxHp`, `float NpGauge` (`0f` to `100f`).
-* **Combat Power:** `int Atk` (calculated from `PlayerProfile.Level` at stage start).
-* **Current Stance (`MashStance` enum):** `Running`, `Parrying`, `Guarding`, `Bashing`, `Staggered`, `NoblePhantasm`.
-* **Timers:** `float StanceTimer` (active Parry or Shield Bash duration) and `float BashCooldownTimer` (prevents spamming Shield Bash).
+### Vitals & Power
+* `int CurrentHp` — Active hit points during the current run.
+* `int MaxHp` — Calculated from `PlayerProfile.Level` at stage start.
+* `int Atk` — Calculated from `PlayerProfile.Level` at stage start.
+
+### Noble Phantasm
+* `float NpGauge` — Starts at `0f` by default (unless overridden by a special stage gimmick). Activating NP subtracts `100f`, allowing back-to-back uses if overcharged.
+* `float MaxNpGauge` — Scales with `PlayerProfile.NpLevel` (`100f` at NP1, `200f` at NP2–4, `300f` at NP5).
+
+### Run Loot & Rhythm Flow
+* `int EarnedExp` — XP accumulated during the current stage (awarded in full even on defeat).
+* `int EarnedQp` — QP accumulated during the current stage (awarded in full even on defeat).
+* `int ComboStreak` — Tracks consecutive successful Parries, Shield Bashes, and Guard blocks without taking damage; resets to `0` on HP damage.
+
+### Stance & Timers
+* `MashStance CurrentStance` — Enum: `Running`, `Parrying`, `Guarding`, `Bashing`, `Staggered`, `NoblePhantasm`. *(No attack cooldowns—players can chain inputs freely for rhythmic combat.)*
+* `float StanceTimer` — Counts down active duration for temporary stances (`Parrying`, `Bashing`, `Staggered`, or the brief `NoblePhantasm` cut-in pause) before returning to `Running`.
+* `float InvulnerableTimer` — Mercy i-frames after taking a hit, plus brief invulnerability granted when triggering Noble Phantasm.
+* `float NpBuffTimer` — Counts down the active ATK Up and DEF Up buff duration granted after unleashing Noble Phantasm.
 
 ---
 
